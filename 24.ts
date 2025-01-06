@@ -185,22 +185,68 @@ for (const [_, coordinates] of coordinatesByPlant.entries()) {
 let price = 0;
 regions.forEach((region) => {
   const area = region.size;
-  const perimeter = toPerimeter(region);
+  // there are as many sides as there are corners
+  const corners = cornersCount(region);
 
-  price += area * perimeter;
+  price += area * corners;
 });
 
 console.log({ price });
 
-function toPerimeter(region: Set<CoordinateStr>): number {
-  let perimeter = 0;
-  region.forEach((coordinate) => {
-    const neighbours = toNeighbours(coordinate, region);
+function cornersCount(region: Set<CoordinateStr>): number {
+  if (region.size === 1) return 4;
 
-    perimeter += 4 - neighbours.length;
+  let count = 0;
+  region.forEach((coordinate) => {
+    const [left, top, right, bottom] = toNeighbours(coordinate, region);
+
+    if (left == null && top == null) count++;
+    if (left == null && bottom == null) count++;
+    if (right == null && top == null) count++;
+    if (right == null && bottom == null) count++;
+
+    if (left != null) {
+      const leftCoordinate = toCoordinate(left);
+
+      const leftTop = toTop(leftCoordinate);
+      if (
+        leftTop != null &&
+        top == null &&
+        region.has(toCoordinateStr(leftTop))
+      )
+        count++;
+
+      const leftBottom = toBottom(leftCoordinate);
+      if (
+        leftBottom != null &&
+        bottom == null &&
+        region.has(toCoordinateStr(leftBottom))
+      )
+        count++;
+    }
+
+    if (right != null) {
+      const rightCoordinate = toCoordinate(right);
+
+      const rightTop = toTop(rightCoordinate);
+      if (
+        rightTop != null &&
+        top == null &&
+        region.has(toCoordinateStr(rightTop))
+      )
+        count++;
+
+      const rightBottom = toBottom(rightCoordinate);
+      if (
+        rightBottom != null &&
+        bottom == null &&
+        region.has(toCoordinateStr(rightBottom))
+      )
+        count++;
+    }
   });
 
-  return perimeter;
+  return count;
 }
 
 function fillRegion(props: {
@@ -210,13 +256,15 @@ function fillRegion(props: {
 }) {
   add(props.coordinate);
 
-  toNeighbours(props.coordinate, props.coordinates).forEach((coordinate) =>
+  toNeighbours(props.coordinate, props.coordinates).forEach((coordinate) => {
+    if (coordinate == null) return;
+
     fillRegion({
       coordinate,
       region: props.region,
       coordinates: props.coordinates,
-    })
-  );
+    });
+  });
 
   function add(coordinate: CoordinateStr) {
     props.region.add(coordinate);
@@ -227,18 +275,28 @@ function fillRegion(props: {
 function toNeighbours(
   str: CoordinateStr,
   region: Set<CoordinateStr>
-): CoordinateStr[] {
+): [
+  CoordinateStr | null,
+  CoordinateStr | null,
+  CoordinateStr | null,
+  CoordinateStr | null
+] {
   const coordinate = toCoordinate(str);
 
   return [
-    toLeft(coordinate),
-    toTop(coordinate),
-    toRight(coordinate),
-    toBottom(coordinate),
-  ]
-    .filter((item) => item != null)
-    .map(toCoordinateStr)
-    .filter((item) => region.has(item));
+    toNeighbour(toLeft(coordinate)),
+    toNeighbour(toTop(coordinate)),
+    toNeighbour(toRight(coordinate)),
+    toNeighbour(toBottom(coordinate)),
+  ];
+
+  function toNeighbour(item: Coordinate | null): CoordinateStr | null {
+    if (item == null) return null;
+    const coordinate = toCoordinateStr(item);
+    if (!region.has(coordinate)) return null;
+
+    return coordinate;
+  }
 }
 
 type Coordinate = { x: number; y: number };
