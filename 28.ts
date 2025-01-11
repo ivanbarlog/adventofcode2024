@@ -5,7 +5,7 @@
  * 2. stream the output to file
  * 3. try to find out the tree - I have just used the `grep -rn "##########" 28.log` and then inspected the file manually
  *
- * There might be better solution but I couldn't come up with any. 🎄
+ * After finding this I suppose I could "grep" the way out of this within the code as well 🎄
  */
 
 const input = `p=89,15 v=-45,26
